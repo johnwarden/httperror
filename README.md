@@ -1,6 +1,7 @@
 Package httperror is for writing HTTP handlers that return errors instead of handling them directly.
 
-The basic idea is described in Preslav Rachev's blog post [I Don't Like Go's Default HTTP Hanlers](https://preslav.me/2022/08/09/i-dont-like-golang-default-http-handlers/)
+This readme introduces this package with examples. Individual types and methods
+are documented in the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror)
 
 ## Basic Example
 
@@ -10,7 +11,7 @@ The basic idea is described in Preslav Rachev's blog post [I Don't Like Go's Def
 
 		name, ok := r.URL.Query()["name"];
 		if !ok {
-			return httperror.New("missing 'name' parameter", http.StatusBadRequest)
+			return httperror.New(http.StatusBadRequest, "missing 'name' parameter")
 		}
 
 		fmt.Fprintf(w, "Hello, %s\n", name[0])
@@ -28,31 +29,29 @@ The basic idea is described in Preslav Rachev's blog post [I Don't Like Go's Def
 	}
 
 
-Unlike a standard HTTP handler function, helloHandler can return an
-error. If the required URL parameter is missing, it uses `PublicErrorf` to
-create and return an error with an embedded 400 Bad Request code and a public
-error message.
+Unlike a standard HTTP handler function, the `helloHandler` function above can
+return an error.  Although there is no explicit error handling code in this
+example, if you run this example and fetch http://localhost:8080/hello without a
+`name` URL parameter, a 400 Bad Request page will be appropriately served.
 
-Notice there is no explicit error handling code in this example. But if you
-fetch http://localhost:8080/hello without a `name` URL parameter, a 400 Bad
-Request page will be appropriately served.
+This is because helloHandler is  converted into a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc), which has a
+ServeHTTP method and thus implements the standard library's [http.Handler](https://pkg.go.dev/net/http#Handler) interface. The ServeHTTP method handles
+any error returned by the handler function using a default error handler,
+which serves an appropriate error page given the content type, status code.
 
-This is because helloHandler is then converted into a `httperror.HandlerFunc`. This type has a
-ServeHTTP method which makes it implements the standard library's
-`http.Handler` interface. The ServeHTTP method handles any error returned by
-the handler function using a default error handler, which extracts any HTTP status code and
-public error message from the error value, checks the content type header,
-and serves an appropriate error page with that content type, status code, and message.
-
-## Advantages to the Error-Returning pattern
+## Advantages to Returning Errors over Handling Them Directly
 
 - more idiomatic Go (most go code uses the error-returning pattern)
-- less boilerplate error handling code
+- reduce risk of "naked returns" as described by Preslav Rachev's in [I Don't Like Go's Default HTTP Hanlers](https://preslav.me/2022/08/09/i-dont-like-golang-default-http-handlers/).
 - middleware can inspect errors, extract status codes, add context, and appropriate log and handle errors
 
-For example, structured logging middleware can extract error status codes from
-error values to include in logs, and then return the error to be
-inspected or handled by other middleware.
+
+## Custom Error Handlers and Middleware
+
+Use [WrapHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#WrapHandlerFunc) to construct a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) with a custom error handler. Here is an [example](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-CustomErrorHandler).
+
+And [here](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-CustomMiddleware) is an example of custom middleware that wraps a handler to log errors and treats panics as errors.
+
 
 ## Extracting, Embedding, and Comparing HTTP Status Codes
 
@@ -63,7 +62,7 @@ inspected or handled by other middleware.
 	httperror.StatusCode(e1) // 404
 
 	// Constructing Errors
-	e1 := httperror.New("no such product ID", http.StatusNotFound)
+	e1 := httperror.New(http.StatusNotFound, "no such product ID")
 
 	// Comparing Errors
 	errors.Is(e1, httperror.NotFound) // true
@@ -78,28 +77,27 @@ inspected or handled by other middleware.
 
 ## Public Error Messages
 
-The default error handler, [httperror.WriteResponse] will only show a HTTP status code and the corresponding generic status text
-(e.g. "404 Not Found"). It will not show detailed error messages to users, as this could like program implementation details to the public.
+The default error handler, [DefaultErrorHandler](https://pkg.go.dev/github.com/johnwarden/httperror#DefaultErrorHandler) will
+not show detailed error messages to users, as this could leak program implementation details to the public.
 
-However, if the error value has a an embedded public error message, this will be displayed to the user. To embed a public error message,
-create an error using [httperror.PublicErrorf] instead of [httperror.New]:
+However, if the error value has an embedded public error message, this will be displayed to the user. To embed a public error message,
+create an error using [NewPublic](https://pkg.go.dev/github.com/johnwarden/httperror#NewPublic) instead of [New](https://pkg.go.dev/github.com/johnwarden/httperror#New):
 
-	e := httperror.PublicErrorf("Sorry, we can't find a product with this ID", 404)
+	e := httperror.New(404, "Sorry, we can't find a product with this ID")
 
-Public error messages are extracted by [httperror.PublicMessage]:
+Public error messages are extracted by [PublicMessage](https://pkg.go.dev/github.com/johnwarden/httperror#PublicMessage):
 
 	m := httperror.PublicMessage(e)
 
-If your custom error type defines a `PublicMessage() string` method, then [httperror.PublicMessage] will call and
-return the value from that method.
+If your custom error type defines a `PublicMessage() string` method, then [PublicMessage](https://pkg.go.dev/github.com/johnwarden/httperror#PublicMessage) will call and return the value from that method.
 
 ## Generic Handler and HandlerFunc Types
 
-This package defines generic version of [httperror.Handler] and
-[httperror.HandlerFunc]: [httperror.XHandler] and
-[httperror.XHandlerFunc]. The latter allow your http handlers to accept a
+This package defines generic version of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and
+[httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc): [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) and
+[httperror.XHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc). The latter allow your http handlers to accept a
 third parameter of a generic type -- a common pattern for Go HTTP handlers
-and middleware. See the httprouter example below.
+and middleware. See the [httprouter example](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-Httprouter) in the godoc.
 
 ## Use with Other Routers/Middleware/etc. Packages
 
@@ -111,35 +109,28 @@ This package is compatible with many other frameworks, routers, and middleware
 in the Go ecosystem, because it is not a "framework": it just some some
 types, default error handling code, and example patterns. Using any of these
 types should not tightly couple your application code to this package. Even
-the definitions of [httperror.Handler] and [httperror.HandlerFunc] are just a
+the definitions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and
+[httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are just a
 few lines of code which can be copied into your codebase and customized.
 
-Below we include an example of using this package with a
-[github.com/julienschmidt/httprouter]
-(https://github.com/julienschmidt/httprouter).
+Below we include an [example](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-Httprouter) of
+using this package with a[github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
 
-
-
-## In This Package
-
-  - error values for all HTTP error status code (e.g. httperror.NotFound)
-  - methods for embedding and extracting status codes in error values
-  - default error handling functions
-  - alternative Handler and HandlerFunc types and generic XHandler and XHandlerFunc types for writing handlers that return errors
 
 
 ## Similar Packages
 
-- [github.com/caarlos0/httperr](https://github.com/caarlos0/httperr) uses a very similar, and I have modified the design of this package to minimize the differences.
+[github.com/caarlos0/httperr](https://github.com/caarlos0/httperr) uses a very similar approach, for example the definition of: [httperr.HandlerFunc](https://pkg.go.dev/github.com/caarlos0/httperr#HandlerFunc) and [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are identical. And I have modified the design of this package to mimic httperr where possible, but there are a few way this package differs:
 
-Some differences include:
-  - httperror's default error handler supports different content types 
-  - httperror has functions for extracting error status codes and comparing error values
-  - httperror.Handler and httperror.HandlerFunc implements http.Handler. There is no need for NewF. 
-
+  - The [default error handler](https://pkg.go.dev/github.com/johnwarden/httperror#DefaultErrorHandler) supports more content types.
+  - Functions for [extracting error status codes](https://pkg.go.dev/github.com/johnwarden/httperror#DefaultErrorHandler).
+  - Comparison of errors to pre-defined error values (e.g. `errors.Is(err, httperror.NotFound)`).
+  - [Public error messages](#public-error-messages).
+  - [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) implement both [http.Handler](https://pkg.go.dev/net/http#Handler) and [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler). When used as an [http.Handler](https://pkg.go.dev/net/http#Handler), errors returned by an [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) will be handled by the [default error handler](https://pkg.go.dev/github.com/johnwarden/httperror#DefaultErrorHandler).
+  - Generic [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) and [httperror.XHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#XHandlerFunc) types.
 
 
 ## Examples
 
-The examples tests demonstrate some of the advantages of this approach.
+The [examples](https://pkg.go.dev/github.com/johnwarden/httperror#readme-examples) in the godoc demonstrate some of the advantages of this approach.
 

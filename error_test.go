@@ -42,7 +42,7 @@ func TestErrors(t *testing.T) {
 	}
 
 	{
-		e := httperror.Errorf(http.StatusBadRequest, "missing parameter 'foo'")
+		e := httperror.New(http.StatusBadRequest, "missing parameter 'foo'")
 
 		assert.Equal(t, "400 Bad Request: missing parameter 'foo'", e.Error())
 
@@ -58,7 +58,7 @@ func TestErrors(t *testing.T) {
 	}
 
 	{
-		e := httperror.PublicErrorf(http.StatusBadRequest, "missing parameter 'foo'")
+		e := httperror.NewPublic(http.StatusBadRequest, "missing parameter 'foo'")
 
 		assert.Equal(t, "400 Bad Request: missing parameter 'foo'", e.Error())
 

@@ -25,7 +25,7 @@ func Example_httprouter() {
 func helloRouterHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) error {
 	var name string
 	if name = ps.ByName("name"); name == "" {
-		return httperror.PublicErrorf(http.StatusBadRequest, "missing 'name' parameter")
+		return httperror.NewPublic(http.StatusBadRequest, "missing 'name' parameter")
 	}
 
 	fmt.Fprintf(w, "Hello, %s\n", name)

@@ -11,8 +11,8 @@ import (
 
 // The following example extends the basic example from the introduction by adding custom error handler that
 // also logs errors.
-func Example_customErrorHanlder() {
-	// This is the same helloHandler as the introduction. Add a custom error handler. 
+func Example_customErrorHandler() {
+	// This is the same helloHandler as the introduction. Add a custom error handler.
 	h := httperror.WrapHandlerFunc(helloHandler, customErrorHandler)
 
 	_, o := testRequest(h, "/hello")
@@ -25,7 +25,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) error {
 
 	name, ok := r.URL.Query()["name"]
 	if !ok {
-		return httperror.PublicErrorf(http.StatusBadRequest, "missing 'name' parameter")
+		return httperror.NewPublic(http.StatusBadRequest, "missing 'name' parameter")
 	}
 
 	fmt.Fprintf(w, "Hello, %s\n", name[0])

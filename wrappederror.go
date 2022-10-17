@@ -7,9 +7,14 @@ import (
 	"strconv"
 )
 
-// Errorf works like fmt.Errorf but it also embeds an HTTP status code. status
+// New constructs an error with an embedded an HTTP status code. The status
 // code can be extracted using [httperror.StatusCode].
+func New(status int, message string) error {
+	return Wrap(fmt.Errorf(message), status)
+}
 
+// Errorf works like fmt.Errorf but it also embeds an HTTP status code. The
+// status code can be extracted using [httperror.StatusCode].
 func Errorf(status int, format string, args ...interface{}) error {
 	return Wrap(fmt.Errorf(format, args...), status)
 }

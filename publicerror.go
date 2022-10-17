@@ -7,14 +7,20 @@ import (
 	"strconv"
 )
 
-// PublicErrorf returns a new public error with the given public error message
-// and status code. The resulting value implements the
-// the [httperror.Public] interface, meaning [httperror.PublicMessage] can be
-// called on it to return the public error message for display to the user.
+// NewPublic returns a new public error with the given status code and public
+// error message generated using the format string and arguments. The
+// resulting error value implements the the [httperror.Public] interface.
+func NewPublic(status int, message string) error {
+	return publicError{message, statusError{status}}
+}
+
+// PublicErrorf returns a new public error with the given status code and
+// public error message. The resulting value implements the the
+// [httperror.Public] interface.
+
 func PublicErrorf(status int, format string, args ...interface{}) error {
 	return publicError{fmt.Sprintf(format, args...), statusError{status}}
 }
-
 
 type publicError struct {
 	message string

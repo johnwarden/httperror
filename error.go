@@ -1,3 +1,6 @@
+/*
+Package httperror is for writing HTTP handlers that return errors instead of handling them directly. See the documentation at https://github.com/johnwarden/httperror
+*/
 package httperror
 
 import (
@@ -27,9 +30,8 @@ type Public = interface {
 }
 
 // StatusCode extracts the HTTP status code from an error created by this package.
-// Also if the error implements a Temporary() bool function
-// (see net.Error) and it returns true, then this function returns
-// StatusServiceUnavailable. Otherwise it returns InternalServerError.
+// If the error doesn't have an embedded status code, it returns InternalServerError.
+// If the error is nil, returns 200 OK.
 func StatusCode(err error) int {
 	var httpError httpError
 
@@ -39,13 +41,6 @@ func StatusCode(err error) int {
 
 	if errors.As(err, &httpError) {
 		return httpError.httpStatusCode()
-	}
-
-	var temporaryErr interface{ Temporary() bool }
-	if errors.As(err, &temporaryErr) {
-		if temporaryErr.Temporary() {
-			return http.StatusServiceUnavailable
-		}
 	}
 
 	return http.StatusInternalServerError

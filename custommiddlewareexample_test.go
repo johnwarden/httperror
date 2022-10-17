@@ -40,17 +40,18 @@ func customMiddleware(h httperror.Handler) httperror.HandlerFunc {
 			// TODO: insert your application's error logging code here.
 			fmt.Printf("HTTP Handler returned error %s\n", err)
 
-			customErrorHandler(w, err) 
+			customErrorHandler(w, err)
+		} else {
+			fmt.Printf("HTTP Handler returned ok\n")
 		}
 
-		return nil;
+		return nil
 	}
 }
 
-
 // HandlePanics recovers from panics, converts the panic to an error with a
 // stack and calls the given error handler. It should be called in a defer
-func HandlePanics(w http.ResponseWriter, eh func(w http.ResponseWriter, e error)) { 
+func HandlePanics(w http.ResponseWriter, eh func(w http.ResponseWriter, e error)) {
 	if rec := recover(); rec != nil {
 
 		// Convert the panic value into an error
@@ -63,4 +64,3 @@ func HandlePanics(w http.ResponseWriter, eh func(w http.ResponseWriter, e error)
 		eh(w, err)
 	}
 }
-

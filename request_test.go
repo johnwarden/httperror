@@ -39,7 +39,7 @@ func testRequest(h http.Handler, path string) (int, string) {
 func TestRequest(t *testing.T) {
 	{
 		s, _ := testRequest(httperror.HandlerFunc(okHandler), "/")
-		assert.Equal(t, 200, s, "got 200 OK response" )
+		assert.Equal(t, 200, s, "got 200 OK response")
 	}
 
 	{
@@ -67,5 +67,3 @@ var notFoundHandler = httperror.HandlerFunc(func(w http.ResponseWriter, _ *http.
 	w.Header().Set("Content-Type", "text/plain")
 	return httperror.NotFound
 })
-
-
