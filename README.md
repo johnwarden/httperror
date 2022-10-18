@@ -105,11 +105,11 @@ If your custom error type defines a `PublicMessage() string` method, then [Publi
 
 This package defines generic versions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and
 [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc): [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) and [httperror.XHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc). The latter allow your http handlers to accept a
-third parameter of a any type. 
+third parameter of any type. 
 
 This parameter can contain parsed request parameters, authorized user IDs, and
 other information required by request handlers. This information will
-typically required by routers, middleware, or a framework. For example, the
+typically be supplied by routers, middleware, or a framework. For example, the
 helloHandler function in the introductory example might be cleaner if it
 accepted its arguments as a struct.
 
@@ -121,7 +121,7 @@ accepted its arguments as a struct.
 		// implement the hello handler.
 	}
 
-This struct needs to be provided by a wrapper function that parses request parameters into a HelloParams struct. Here is an [example](#HTTPRouter-Example) that does this using the popular [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) package for parameter parsing.
+This struct needs to be provided by a wrapper function that parses request parameters into a HelloParams struct. Here is an [example](#example-httprouter) that does this using the popular [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) package for parameter parsing.
 
 
 ## Use with Other Routers/Middleware/etc. Packages
@@ -138,8 +138,9 @@ the definitions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/
 [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are just a
 few lines of code which can be copied into your codebase and customized.
 
-Below we include an [example](#HTTPRouter-Example) of
-using this package with a [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
+Below we include an [example](#example-httprouter) of using this package with
+a [github.com/julienschmidt/httprouter]
+(https://github.com/julienschmidt/httprouter).
 
 
 ## Similar Packages
