@@ -46,7 +46,7 @@ which serves an appropriate error page given the content type and status code.
 - middleware can inspect errors, extract status codes, add context, and appropriately log and handle errors
 
 
-## Custom Error Handlers and Middleware
+## Custom Error Handlers
 
 Use [WrapHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#WrapHandlerFunc) to add a custom error handler. 
 
@@ -59,9 +59,14 @@ Use [WrapHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#WrapHan
 
 	h := httperror.WrapHandlerFunc(helloHandler, customErrorHandler)
 
-Here is a [more complete example](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-CustomErrorHandler).
+Here is a [more complete example](#example-custom-error-handler).
 
-And here is an example of [custom middleware](https://pkg.go.dev/github.com/johnwarden/httperror#example-package-CustomMiddleware) that wraps a handler to log errors and treats panics as errors.
+## Middleware
+
+Here are some exmaples
+
+- [log errors](#example-log-middleware)
+- [convert panics to errors](#example-panic-middleware)
 
 ## Extracting, Embedding, and Comparing HTTP Status Codes
 
@@ -139,8 +144,7 @@ the definitions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/
 few lines of code which can be copied into your codebase and customized.
 
 Below we include an [example](#example-httprouter) of using this package with
-a [github.com/julienschmidt/httprouter]
-(https://github.com/julienschmidt/httprouter).
+a [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
 
 
 ## Similar Packages
@@ -211,7 +215,7 @@ error handler that also logs errors.
 	}
 
 
-## Example: Custom Middleware
+## Example: Log Middleware
 
 
 The following example extends the basic example from the introduction by
@@ -245,10 +249,6 @@ such as the status code for successful requests.
 	func customMiddleware(h httperror.Handler) httperror.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) error {
 
-			// Handle panics so that users see an actual error page on panic,
-			// instead of an empty page.
-			defer HandlePanics(w, customErrorHandler)
-
 			// TODO: custom pre-request actions such as wrapping the response writer.
 
 			err := h.Serve(w, r)
@@ -266,19 +266,53 @@ such as the status code for successful requests.
 		}
 	}
 
-	// HandlePanics recovers from panics, converts the panic to an error with a
-	// stack and calls the given error handler. It should be called in a defer
-	func HandlePanics(w http.ResponseWriter, eh func(w http.ResponseWriter, e error)) {
-		if rec := recover(); rec != nil {
+## Example: Panic Middleware
 
-			// Convert the panic value into an error
-			err, isErr := rec.(error)
-			if !isErr {
-				err = fmt.Errorf("%v", rec)
-			}
+The following example is simple middleware that converts panics in HTTP handlers to errors. This
+means that users will be served an appropriate 500 error response, and that middleware can inspect
+and log errors. A further refinement might be to trigger a graceful server shutdown on panic.
 
-			// Handle eeror.
-			eh(w, err)
+
+	import (
+		"fmt"
+		"net/http"
+
+		"github.com/johnwarden/httperror"
+	)
+
+
+	func getMeOuttaHere(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "text/plain")
+		panic("Get me outta here!")
+		return nil
+	}
+
+	func Example_panic() {
+
+		h := httperror.HandlerFunc(getMeOuttaHere)
+
+		h = panicMiddleware(h)
+
+		_, o := testRequest(h, "/")
+		fmt.Println(o)
+		// Output: 500 Internal Server Error
+	}
+
+
+	func panicMiddleware(h httperror.Handler) httperror.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) (err error) {
+
+			defer func() {
+				if r := recover(); r != nil {
+					isErr := false
+					if err, isErr = r.(error); !isErr {
+						err = fmt.Errorf("%v", r)
+					}
+				}
+			}()			
+
+			err = h.Serve(w, r)
+			return;
 		}
 	}
 
