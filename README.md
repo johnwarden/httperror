@@ -63,7 +63,7 @@ Here is a [more complete example](#example-custom-error-handler).
 
 ## Middleware
 
-Here are some exmaples
+Returning errors from functions enable some new middleware patterns. Here are some examples:
 
 - [log errors](#example-log-middleware)
 - [convert panics to errors](#example-panic-middleware)
