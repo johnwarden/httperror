@@ -26,17 +26,15 @@ func okHandler(w http.ResponseWriter, r *http.Request) error {
 func testRequest(h http.Handler, path string) (int, string) {
 	r, _ := http.NewRequest("GET", path, strings.NewReader(url.Values{}.Encode())) // URL-encoded payload
 
-	{
-		rr := httptest.NewRecorder()
-		h.ServeHTTP(rr, r)
-		resp := rr.Result()
-		defer resp.Body.Close()
-		// io.Copy(os.Stdout, res.Body)
-		body, _ := ioutil.ReadAll(resp.Body)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, r)
+	resp := rr.Result()
+	defer resp.Body.Close()
+	// io.Copy(os.Stdout, res.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 
-		return resp.StatusCode, string(body)
+	return resp.StatusCode, string(body)
 
-	}
 }
 
 func TestRequest(t *testing.T) {
@@ -53,12 +51,24 @@ func TestRequest(t *testing.T) {
 }
 
 func TestCustomErrorHandler(t *testing.T) {
+	s, m := testRequest(httperror.WrapHandlerFunc(helloHandler, customErrorHandler), "/")
+	assert.Equal(t, 400, s, "got 400 Bad request response")
+	assert.Equal(t, "400 Sorry, we couldn't parse your request: missing 'name' parameter\n", m, "got custom error message")
+}
 
-	{
-		s, m := testRequest(httperror.WrapHandlerFunc(helloHandler, customErrorHandler), "/")
-		assert.Equal(t, 400, s, "got 400 Bad request response")
-		assert.Equal(t, "400 Sorry, we couldn't parse your request: missing 'name' parameter\n", m, "got custom error message")
-	}
+func TestPanic(t *testing.T) {
+	h := httperror.HandlerFunc(getMeOuttaHere)
+	h = httperror.PanicMiddleware(h)
+	s, m := testRequest(h, "/")
+	assert.Equal(t, 500, s, "got 500 status code")
+	assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
+}
+
+
+func getMeOuttaHere(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "text/plain")
+	panic("Get me outta here!")
+	return nil
 }
 
 // notFoundHandler is a HandlerFunc that does nothing but return NotFound. This

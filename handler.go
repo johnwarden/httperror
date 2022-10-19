@@ -58,8 +58,10 @@ func (h XHandlerFunc[P]) Serve(w http.ResponseWriter, r *http.Request, p P) erro
 	return h(w, r, p)
 }
 
-// WrapHandlerFunc constructs an httperror.HandlerFunc with a custom error handler.
-// Return an http.HandlerFunc.
+
+// WrapHandlerFunc wraps an HandlerFunc function with a custom error handler.
+// Return a standard [http.HandlerFunc] since returning an error is irrelevant
+// once it has been handled.
 func WrapHandlerFunc(h func(w http.ResponseWriter, r *http.Request) error, eh ErrorHandler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := h(w, r)
@@ -79,3 +81,5 @@ func WrapXHandlerFunc[P any](h func(w http.ResponseWriter, r *http.Request, p P)
 		}
 	}
 }
+
+

@@ -63,10 +63,13 @@ Here is a [more complete example](#example-custom-error-handler).
 
 ## Middleware
 
-Returning errors from functions enable some new middleware patterns. Here are some examples:
+Returning errors from functions enable some new middleware patterns. Here is an example of custom middleware that [logs errors](#example-log-middleware).
 
-- [log errors](#example-log-middleware)
-- [convert panics to errors](#example-panic-middleware)
+[PanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#PanicMiddleware) 
+causes panics to be returned as errors. This way, users will be
+served an appropriate 500 error response (instead of an empty response), and
+middleware can inspect and log errors. A further refinement might be to
+trigger a graceful server shutdown on panic.
 
 ## Extracting, Embedding, and Comparing HTTP Status Codes
 
@@ -109,24 +112,30 @@ If your custom error type defines a `PublicMessage() string` method, then [Publi
 ## Generic Handler and HandlerFunc Types
 
 This package defines generic versions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and
-[httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc): [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) and [httperror.XHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc). The latter allow your http handlers to accept a
+[httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) -- [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) and [httperror.XHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) -- that accept a
 third parameter of any type. 
 
-This parameter can contain parsed request parameters, authorized user IDs, and
-other information required by request handlers. This information will
-typically be supplied by routers, middleware, or a framework. For example, the
-helloHandler function in the introductory example might be cleaner if it
-accepted its arguments as a struct.
+The third parameter can contain parsed request parameters, authorized user
+IDs, and other information required by  handlers. For example, the
+`helloHandler` function in the introductory example might cleaner if it
+accepted its parameters as a struct.
 
 	type HelloParams struct {
 		Name string
 	}
 
 	func helloHandler(w http.ResponseWriter, r *http.Request, ps HelloParams) error { 
-		// implement the hello handler.
+		fmt.Fprintf(w, "Hello, %s\n", ps.Name)
+		return nil
 	}
 
-This struct needs to be provided by a wrapper function that parses request parameters into a HelloParams struct. Here is an [example](#example-httprouter) that does this using the popular [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) package for parameter parsing.
+	h = httperror.XHandlerFunc[HelloParams](helloHandler)
+
+[httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s can use generic middleware that does not care about the type of the third parameter, such as such as (https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware).
+
+	h = httperror.XPanicMiddleware[HelloParams](h)
+
+Ultimately the handler function needs to be provided by a HelloParams struct by middleware that parses request parameters. Here is an [example](#example-httprouter) that does this using the popular [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) package.
 
 
 ## Use with Other Routers/Middleware/etc. Packages
@@ -209,7 +218,7 @@ error handler that also logs errors.
 			httperror.WriteResponse(w, httperror.StatusCode(err), m.Bytes())
 
 		} else {
-			// Else use the default error handler, or customize it if you want something fancier.
+			// Else use the default error handler.
 			httperror.DefaultErrorHandler(w, err)
 		}
 	}
@@ -233,12 +242,12 @@ such as the status code for successful requests.
 	)
 
 
-	func Example_customMiddleware() {
+	func Example_logMiddleware() {
 		// This is the same helloHandler as the introduction
 		h := httperror.HandlerFunc(helloHandler)
 
 		// But add some custom middleware to handle and log errors.
-		h = customMiddleware(h)
+		h = customLogMiddleware(h)
 
 		_, o := testRequest(h, "/hello")
 		fmt.Println(o)
@@ -246,7 +255,7 @@ such as the status code for successful requests.
 		// 400 Sorry, we couldn't parse your request: missing 'name' parameter
 	}
 
-	func customMiddleware(h httperror.Handler) httperror.HandlerFunc {
+	func customLogMiddleware(h httperror.Handler) httperror.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) error {
 
 			// TODO: custom pre-request actions such as wrapping the response writer.
@@ -256,71 +265,16 @@ such as the status code for successful requests.
 			if err != nil {
 				// TODO: insert your application's error logging code here.
 				fmt.Printf("HTTP Handler returned error %s\n", err)
-
-				customErrorHandler(w, err)
-			} else {
-				fmt.Printf("HTTP Handler returned ok\n")
 			}
 
-			return nil
-		}
-	}
-
-## Example: Panic Middleware
-
-The following example is simple middleware that converts panics in HTTP handlers to errors. This
-means that users will be served an appropriate 500 error response, and that middleware can inspect
-and log errors. A further refinement might be to trigger a graceful server shutdown on panic.
-
-
-	import (
-		"fmt"
-		"net/http"
-
-		"github.com/johnwarden/httperror"
-	)
-
-
-	func getMeOuttaHere(w http.ResponseWriter, r *http.Request) error {
-		w.Header().Set("Content-Type", "text/plain")
-		panic("Get me outta here!")
-		return nil
-	}
-
-	func Example_panic() {
-
-		h := httperror.HandlerFunc(getMeOuttaHere)
-
-		h = panicMiddleware(h)
-
-		_, o := testRequest(h, "/")
-		fmt.Println(o)
-		// Output: 500 Internal Server Error
-	}
-
-
-	func panicMiddleware(h httperror.Handler) httperror.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) (err error) {
-
-			defer func() {
-				if r := recover(); r != nil {
-					isErr := false
-					if err, isErr = r.(error); !isErr {
-						err = fmt.Errorf("%v", r)
-					}
-				}
-			}()			
-
-			err = h.Serve(w, r)
-			return;
+			return err
 		}
 	}
 
 
 ## Example: HTTPRouter
 
-This example illustrates the use of the error-returning paradigm described in this document with a popular router package, httprouter. To make things more interesting, the handler function accepts its parameters as a struct instead of a value of type httprouter.Params value, thereby decoupling the handler
-from the router. 
+This example illustrates the use of the error-returning paradigm described in this document with a popular router package, httprouter. To make things more interesting, the handler function accepts its parameters as a struct instead of a value of type [httprouter.Params](https://pkg.go.dev/github.com/julienschmidt/httprouter#Params), thereby decoupling the handler from the router. 
 
 	import (
 		"fmt"
@@ -361,12 +315,12 @@ from the router.
 		return nil
 	}
 
-	// routerHandler wraps a handler function of type httperror.XHandlerFunc[HelloParams]
+	// routerHandler wraps a handler function of type httperror.XHandler[HelloParams]
 	// and converts it into a httprouter.Handle. The resulting function
 	// converts its argument of type httprouter.Params into a value of type HelloParams,
 	// and passes it to the inner handler function. 
 
-	func routerHandler(h httperror.XHandlerFunc[HelloParams]) httprouter.Handle {
+	func routerHandler(h httperror.XHandler[HelloParams]) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 			var params HelloParams
