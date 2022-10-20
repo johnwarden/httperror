@@ -1,7 +1,10 @@
-Package httperror is for writing HTTP handlers that return errors instead of handling them directly.
+Package httperror is for writing HTTP handlers that return errors instead of handling them directly. This package defines:
 
-This readme introduces this package with examples. Individual types and methods
-are documented in the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror).
+	- errors with embedded HTTP status codes
+	- handler types that return errors
+	- default sensible error and panic handling functions
+
+This readme introduces this package an provides example usage. See the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror) for more details.
 
 ## Basic Example
 
@@ -29,15 +32,16 @@ are documented in the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror
 	}
 
 
-Unlike a standard HTTP handler function, the `helloHandler` function above can
+Unlike a standard [http.HandlerFunc](https://pkg.go.dev/net/http#HandlerFunc), the `helloHandler` function above can
 return an error.  Although there is no explicit error handling code in this
 example, if you run it and fetch http://localhost:8080/hello without a
 `name` URL parameter, an appropriate plain-text 400 Bad Request page will be served.
 
-This is because helloHandler is  converted into a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc), which has a
-`ServeHTTP` method and thus implements the standard library's [http.Handler](https://pkg.go.dev/net/http#Handler) interface. `ServeHTTP` handles
-any error returned by the handler function using a default error handler,
-which serves an appropriate error page given the content type and status code.
+This is because `helloHandler` is converted into a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc), which has a
+`ServeHTTP` method and thus implements the standard library's [http.Handler](https://pkg.go.dev/net/http#Handler) interface. `ServeHTTP` handles the 400
+Bad Raquest error returned by `helloHandler` using a default error
+handler, which serves an appropriate error page given the content type and
+the status code embedded in the error.
 
 ## Advantages to Returning Errors over Handling Them Directly
 
@@ -51,7 +55,7 @@ which serves an appropriate error page given the content type and status code.
 Use [WrapHandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#WrapHandlerFunc) to add a custom error handler. 
 
 
-	func customErrorHandler(w http.ResponseWriter, r *http.Request, e error) { 
+	func customErrorHandler(w http.ResponseWriter, e error) { 
 		s := httperror.StatusCode(e)
 		w.WriteHeader(s)
 		// now serve an appropriate error response
@@ -117,7 +121,7 @@ third parameter of any type.
 
 The third parameter can contain parsed request parameters, authorized user
 IDs, and other information required by  handlers. For example, the
-`helloHandler` function in the introductory example might cleaner if it
+`helloHandler` function in the introductory example might be cleaner if it
 accepted its parameters as a struct.
 
 	type HelloParams struct {
@@ -131,7 +135,7 @@ accepted its parameters as a struct.
 
 	h = httperror.XHandlerFunc[HelloParams](helloHandler)
 
-[httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s can use generic middleware that does not care about the type of the third parameter, such as such as (https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware).
+Our handler function can use generic middleware written for [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s, such as such as (https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware).
 
 	h = httperror.XPanicMiddleware[HelloParams](h)
 
@@ -152,8 +156,9 @@ the definitions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/
 [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are just a
 few lines of code which can be copied into your codebase and customized.
 
-Below we include an [example](#example-httprouter) of using this package with
-a [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
+See [this example](#example-httprouter) of using the error-returning handler
+pattern with a [github.com/julienschmidt/httprouter]
+(https://github.com/julienschmidt/httprouter).
 
 
 ## Similar Packages
@@ -167,7 +172,7 @@ The complete examples below demonstrate some of the advantages of this approach.
 ## Example: Custom Error Handler
 
 This example extends the basic example from the introduction by adding custom
-error handler that also logs errors.
+error handler.
 
 
 	package httperror_test
@@ -228,7 +233,7 @@ error handler that also logs errors.
 
 
 The following example extends the basic example from the introduction by
-adding custom logging middleware. Note actual logging middleware would need
+adding custom logging middleware. Actual logging middleware would probably need
 to be much more complex to correctly capture information from the response
 such as the status code for successful requests.
 
@@ -274,7 +279,7 @@ such as the status code for successful requests.
 
 ## Example: HTTPRouter
 
-This example illustrates the use of the error-returning paradigm described in this document with a popular router package, httprouter. To make things more interesting, the handler function accepts its parameters as a struct instead of a value of type [httprouter.Params](https://pkg.go.dev/github.com/julienschmidt/httprouter#Params), thereby decoupling the handler from the router. 
+This example illustrates the use of the error-returning paradigm described in this document with a popular router package, [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter). To make things more interesting, the handler function accepts its parameters as a struct instead of a value of type [httprouter.Params](https://pkg.go.dev/github.com/julienschmidt/httprouter#Params), thereby decoupling the handler from the router. 
 
 	import (
 		"fmt"
