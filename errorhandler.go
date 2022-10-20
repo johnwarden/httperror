@@ -16,7 +16,7 @@ const (
 )
 
 // ErrorHandler handles an error.
-type ErrorHandler = func(w http.ResponseWriter, err error)
+type ErrorHandler = func(http.ResponseWriter, error)
 
 // DefaultErrorHandler writes a reasonable default error response, using the status
 // code from the error if it can be extracted (see [StatusCode]), or 500 by

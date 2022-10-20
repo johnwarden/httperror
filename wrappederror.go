@@ -22,12 +22,12 @@ func Errorf(status int, format string, args ...interface{}) error {
 // Wrap wraps an error and embeds an HTTP status code that can be extracted
 // using [httperror.StatusCode]
 func Wrap(err error, status int) error {
-	return wrappedError{err, statusError{status}}
+	return wrappedError{err, httpError{status}}
 }
 
 type wrappedError struct {
 	inner error
-	statusError
+	httpError
 }
 
 // Error returns the HTTP status text corresponding to this error status code.

@@ -3,15 +3,41 @@ package httperror
 import (
 	"bytes"
 	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 )
+
+
+
+// Public is an interface that requires a PublicMessage() string method.
+// [httperror.PublicMessage] will extract the public error message from errors
+// that implements this interface.
+type Public = interface {
+	PublicMessage() string
+}
+
+// PublicMessage extracts the public message from errors that have a
+// `PUblicMessage() string` method.
+func PublicMessage(err error) string {
+	var publicError Public
+
+	if err == nil {
+		return ""
+	}
+
+	if errors.As(err, &publicError) {
+		return publicError.PublicMessage()
+	}
+
+	return ""
+}
 
 // NewPublic returns a new public error with the given status code and public
 // error message generated using the format string and arguments. The
 // resulting error value implements the the [httperror.Public] interface.
 func NewPublic(status int, message string) error {
-	return publicError{message, statusError{status}}
+	return publicError{message, httpError{status}}
 }
 
 // PublicErrorf returns a new public error with the given status code and
@@ -19,12 +45,12 @@ func NewPublic(status int, message string) error {
 // [httperror.Public] interface.
 
 func PublicErrorf(status int, format string, args ...interface{}) error {
-	return publicError{fmt.Sprintf(format, args...), statusError{status}}
+	return publicError{fmt.Sprintf(format, args...), httpError{status}}
 }
 
 type publicError struct {
 	message string
-	statusError
+	httpError
 }
 
 // Error returns the text corresponding to this HTTP error status code.
