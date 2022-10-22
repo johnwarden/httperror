@@ -70,4 +70,18 @@ func TestErrors(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, httperror.StatusCode(e))
 		assert.Equal(t, "missing parameter 'foo'", httperror.PublicMessage(e))
 	}
+
+	{
+		e := httperror.New(http.StatusBadRequest, "")
+		assert.Equal(t, e, httperror.BadRequest, "New with empty string")
+
+		e = httperror.Errorf(http.StatusBadRequest, "%s", "")
+		assert.Equal(t, e, httperror.BadRequest, "Errorf with empty string")
+		assert.NotEqual(t, e, httperror.NotFound)
+
+		e = httperror.New(http.StatusBadRequest, "What??")
+		assert.NotEqual(t, e, httperror.BadRequest)
+		assert.True(t, errors.Is(e, httperror.BadRequest))
+	}
+
 }

@@ -9,14 +9,22 @@ import (
 
 // New constructs an error with an embedded an HTTP status code. The status
 // code can be extracted using [httperror.StatusCode].
-func New(status int, message string) error {
-	return Wrap(fmt.Errorf(message), status)
+func New(s int, m string) error {
+	if m == "" {
+		return httpError{s}
+	}
+	return Wrap(fmt.Errorf(m), s)
 }
 
 // Errorf works like fmt.Errorf but it also embeds an HTTP status code. The
 // status code can be extracted using [httperror.StatusCode].
-func Errorf(status int, format string, args ...interface{}) error {
-	return Wrap(fmt.Errorf(format, args...), status)
+func Errorf(s int, format string, args ...interface{}) error {
+	m := fmt.Sprintf(format, args...)
+	if m == "" {
+		return httpError{s}
+	}
+
+	return Wrap(fmt.Errorf(m), s)
 }
 
 // Wrap wraps an error and embeds an HTTP status code that can be extracted
