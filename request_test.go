@@ -27,7 +27,6 @@ func testRequest(h http.Handler, path string) (int, string) {
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	return resp.StatusCode, string(body)
-
 }
 
 func TestRequest(t *testing.T) {
@@ -91,7 +90,6 @@ var okHandler = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 // error returned by an httperror.HandlerFuncs that is not handled by middleware
 // will by handled by the default WriteErrorResponse method.
 var notFoundHandler = httperror.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) error {
-
 	w.Header().Set("Content-Type", "text/plain")
 	return httperror.NotFound
 })
@@ -110,7 +108,6 @@ func helloHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 func customErrorHandler(w http.ResponseWriter, err error) {
-
 	s := httperror.StatusCode(err)
 	w.WriteHeader(s)
 

@@ -2,13 +2,11 @@ package httperror
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 )
-
-
 
 // Public is an interface that requires a PublicMessage() string method.
 // [httperror.PublicMessage] will extract the public error message from errors

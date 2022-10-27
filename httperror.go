@@ -10,14 +10,12 @@ import (
 	"strconv"
 )
 
-
 // Design note: the httpError type is private. There is no value in making this public.
 // Errors are passed around using the standard `error` interface type. The only time
-// you would want to get at the underlying httpError value would be to extract the status code, but it 
+// you would want to get at the underlying httpError value would be to extract the status code, but it
 // is simpler to just call httperror.StatusCode(err), and in fact it is better
 // as httperror.StatusCode returns the correct status code even for errors that aren't
 // httpErrors (e.g. 500).
-
 
 // httpError implements errors representing specific HTTP Status codes (from 400
 // to 500). This type implements the standard error interface (with error strings
@@ -53,7 +51,6 @@ func (e httpError) Is(target error) bool {
 	return false
 }
 
-
 // Design note: keep this interface private. In my initial implementation this
 // was public: I wanted to allow users to create custom types that return an
 // HTTP status code. But this was a problem when it came to **comparing** error values.
@@ -69,7 +66,6 @@ func (e httpError) Is(target error) bool {
 type httpStatusError = interface {
 	httpStatusCode() int
 }
-
 
 // StatusCode extracts the HTTP status code from an error created by this package.
 // If the error doesn't have an embedded status code, it returns InternalServerError.
@@ -87,9 +83,6 @@ func StatusCode(err error) int {
 
 	return http.StatusInternalServerError
 }
-
-
-
 
 // BadRequest represents the StatusBadRequest HTTP error.
 var BadRequest = httpError{http.StatusBadRequest}

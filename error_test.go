@@ -83,5 +83,4 @@ func TestErrors(t *testing.T) {
 		assert.NotEqual(t, e, httperror.BadRequest)
 		assert.True(t, errors.Is(e, httperror.BadRequest))
 	}
-
 }
