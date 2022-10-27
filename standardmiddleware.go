@@ -11,13 +11,13 @@ var errPtrKey = contextKey("errPtr")
 var paramsKey = contextKey("params")
 
 // StandardMiddleware is a standard http.Handler wrapper.
-type StandardMiddleware = func(http.Handler) http.HandlerFunc
+type StandardMiddleware = func(http.Handler) http.Handler
 
 // XApplyStandardMiddleware applies middleware written for a standard [http.Handler] to an [httperror.XHandler].
 // It works by passing parameters and returning errors through the context.
 func XApplyStandardMiddleware[P any](h XHandler[P], m StandardMiddleware) XHandlerFunc[P] {
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		errPtr := ctx.Value(errPtrKey).(*error)
 		p := ctx.Value(paramsKey).(P)
@@ -36,7 +36,7 @@ func XApplyStandardMiddleware[P any](h XHandler[P], m StandardMiddleware) XHandl
 		c = context.WithValue(c, errPtrKey, &err)
 		c = context.WithValue(c, paramsKey, p)
 
-		handler(w, r.WithContext(c))
+		handler.ServeHTTP(w, r.WithContext(c))
 
 		return err
 	}
@@ -47,7 +47,7 @@ func XApplyStandardMiddleware[P any](h XHandler[P], m StandardMiddleware) XHandl
 func ApplyStandardMiddleware(h Handler, m StandardMiddleware) HandlerFunc {
 	errPtrKey := contextKey("errPtr")
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		errPtr := ctx.Value(errPtrKey).(*error)
 
@@ -64,7 +64,7 @@ func ApplyStandardMiddleware(h Handler, m StandardMiddleware) HandlerFunc {
 		c := r.Context()
 		c = context.WithValue(c, errPtrKey, &err)
 
-		handler(w, r.WithContext(c))
+		handler.ServeHTTP(w, r.WithContext(c))
 
 		return err
 	}

@@ -129,7 +129,7 @@ func customErrorHandler(w http.ResponseWriter, err error) {
 	}
 }
 
-func myMiddleware(h http.Handler) http.HandlerFunc {
+func myMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
 		w.Write([]byte("Did Middleware\n"))
