@@ -59,17 +59,29 @@ func TestPanic(t *testing.T) {
 func TestApplyStandardMiddleware(t *testing.T) {
 	{
 		h := httperror.ApplyStandardMiddleware(okHandler, myMiddleware)
-		s, m := testRequest(h, "/")
+		s, _ := testRequest(h, "/")
 		assert.Equal(t, 200, s)
-		assert.Equal(t, "OK\nDid Middleware\n", m, "got middleware output")
 	}
 
 	{
 		h := httperror.ApplyStandardMiddleware(notFoundHandler, myMiddleware)
 		s, m := testRequest(h, "/")
 		assert.Equal(t, 404, s)
-		assert.Equal(t, "404 Not Found\nDid Middleware\n", m, "got middleware output")
+		assert.Equal(t, "404 Not Found\n", m, "got correct response status")
 	}
+
+	{
+		inner := httperror.XApplyStandardMiddleware[string](nameHandler, myMiddleware)
+
+		h := httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+			return inner(w, r, "Bill")
+		})
+
+		s, m := testRequest(h, "/")
+		assert.Equal(t, 200, s)
+		assert.Equal(t, "Hello, Bill\n", m, "got middleware output")
+	}
+
 }
 
 var getMeOuttaHere = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
@@ -92,6 +104,14 @@ var okHandler = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 var notFoundHandler = httperror.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
 	return httperror.NotFound
+})
+
+var nameHandler = httperror.XHandlerFunc[string](func(w http.ResponseWriter, r *http.Request, name string) error {
+	w.Header().Set("Content-Type", "text/plain")
+
+	fmt.Fprintf(w, "Hello, %s\n", name)
+
+	return nil
 })
 
 func helloHandler(w http.ResponseWriter, r *http.Request) error {
@@ -128,7 +148,7 @@ func customErrorHandler(w http.ResponseWriter, err error) {
 
 func myMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Foo", "Bar")
 		h.ServeHTTP(w, r)
-		w.Write([]byte("Did Middleware\n"))
 	})
 }
