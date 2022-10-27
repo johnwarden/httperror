@@ -70,10 +70,13 @@ Here is a [more complete example](#example-custom-error-handler).
 Returning errors from functions enable some new middleware patterns. Here is an example of custom middleware that [logs errors](#example-log-middleware).
 
 [PanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#PanicMiddleware) 
-causes panics to be returned as errors. This way, users will be
+and [XPanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware)
+are simple middleware functions that recover from panics and returns them as
+errors. Treating panics the same as other errors ensures users are
 served an appropriate 500 error response (instead of an empty response), and
-middleware can inspect and log errors. A further refinement might be to
-trigger a graceful server shutdown on panic.
+middleware appropriately inspects and log errors. A variant of this rather
+simple middleware could trigger a graceful shutdown on error.
+
 
 ## Extracting, Embedding, and Comparing HTTP Status Codes
 
@@ -135,7 +138,7 @@ accepted its parameters as a struct.
 
 	h = httperror.XHandlerFunc[HelloParams](helloHandler)
 
-Our handler function can use generic middleware written for [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s, such as such as (https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware).
+Our handler function can use generic middleware written for [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s, such as such as [PanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware).
 
 	h = httperror.XPanicMiddleware[HelloParams](h)
 
@@ -144,21 +147,21 @@ Ultimately the handler function needs to be provided by a HelloParams struct by 
 
 ## Use with Other Routers/Middleware/etc. Packages
 
-Changing the signature of HTTP handler functions can effect almost all HTTP
-handlers, routers, and middleware in your application. However these changes
-are rather straightforward and should tend to simplify code.
-
 This package is compatible with many other frameworks, routers, and middleware
-in the Go ecosystem, because it is not a "framework": it just some some
-types, default error handling code, and example patterns. Using any of these
-types should not tightly couple your application code to this package. Even
-the definitions of [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) and
-[httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are just a
-few lines of code which can be copied into your codebase and customized.
+in the Go ecosystem, because it is not a framework: it just some some
+simple types, default error handling code, and example patterns. You can easily copy
+the types and functions definitions here and customize them for your application.
+
+### Applying Standard Middleware
+
+You can apply middleware written for standard HTTP handlers to [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler)s and [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler)s using [ApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware) and [XApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware). These work by returning errors, and passing parameters in the case of XHandlers, through the context.
+
+
+
+### Use with Other Routers
 
 See [this example](#example-httprouter) of using the error-returning handler
-pattern with a [github.com/julienschmidt/httprouter]
-(https://github.com/julienschmidt/httprouter).
+pattern with a [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
 
 
 ## Similar Packages

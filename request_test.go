@@ -1,13 +1,13 @@
 package httperror_test
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"bytes"
-	"fmt"
-	"errors"
 	"strings"
 	"testing"
 
@@ -15,13 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func okHandler(w http.ResponseWriter, r *http.Request) error {
-	w.WriteHeader(200)
-	_, _ = w.Write([]byte(`OK`))
-
-	return nil
-}
 
 func testRequest(h http.Handler, path string) (int, string) {
 	r, _ := http.NewRequest("GET", path, strings.NewReader(url.Values{}.Encode())) // URL-encoded payload
@@ -39,7 +32,7 @@ func testRequest(h http.Handler, path string) (int, string) {
 
 func TestRequest(t *testing.T) {
 	{
-		s, _ := testRequest(httperror.HandlerFunc(okHandler), "/")
+		s, _ := testRequest(okHandler, "/")
 		assert.Equal(t, 200, s, "got 200 OK response")
 	}
 
@@ -57,19 +50,41 @@ func TestCustomErrorHandler(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	h := httperror.HandlerFunc(getMeOuttaHere)
+	h := getMeOuttaHere
 	h = httperror.PanicMiddleware(h)
 	s, m := testRequest(h, "/")
 	assert.Equal(t, 500, s, "got 500 status code")
 	assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
 }
 
+func TestApplyStandardMiddleware(t *testing.T) {
+	{
+		h := httperror.ApplyStandardMiddleware(okHandler, myMiddleware)
+		s, m := testRequest(h, "/")
+		assert.Equal(t, 200, s)
+		assert.Equal(t, "OK\nDid Middleware\n", m, "got middleware output")
+	}
 
-func getMeOuttaHere(w http.ResponseWriter, r *http.Request) error {
+	{
+		h := httperror.ApplyStandardMiddleware(notFoundHandler, myMiddleware)
+		s, m := testRequest(h, "/")
+		assert.Equal(t, 404, s)
+		assert.Equal(t, "404 Not Found\nDid Middleware\n", m, "got middleware output")
+	}
+}
+
+var getMeOuttaHere = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
 	panic("Get me outta here!")
 	return nil
-}
+})
+
+var okHandler = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(200)
+	_, _ = w.Write([]byte("OK\n"))
+
+	return nil
+})
 
 // notFoundHandler is a HandlerFunc that does nothing but return NotFound. This
 // should cause an appropriate Not Found error page to be served, since any
@@ -80,8 +95,6 @@ var notFoundHandler = httperror.HandlerFunc(func(w http.ResponseWriter, _ *http.
 	w.Header().Set("Content-Type", "text/plain")
 	return httperror.NotFound
 })
-
-
 
 func helloHandler(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
@@ -114,4 +127,11 @@ func customErrorHandler(w http.ResponseWriter, err error) {
 		// Else use the default error handler, or customize it if you want something fancier.
 		httperror.DefaultErrorHandler(w, err)
 	}
+}
+
+func myMiddleware(h http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+		w.Write([]byte("Did Middleware\n"))
+	})
 }
