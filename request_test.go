@@ -76,6 +76,7 @@ func TestApplyStandardMiddleware(t *testing.T) {
 var getMeOuttaHere = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
 	panic("Get me outta here!")
+	return nil
 })
 
 var okHandler = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
