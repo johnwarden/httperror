@@ -87,7 +87,7 @@ Here is an example of custom middleware that [logs errors](#example-log-middlewa
 
 [PanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#PanicMiddleware) 
 and [XPanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#XPanicMiddleware)
-are simple middleware functions that recover from panics and returns them as
+are simple middleware functions that recover from panics and return them as
 errors. Treating panics the same as other errors ensures users are
 served an appropriate 500 error response (instead of an empty response), and
 middleware appropriately inspects and log errors. A variant of this rather
@@ -170,9 +170,9 @@ In fact, this package makes it easy to apply middleware that was not written for
 
 ### Applying Standard Middleware
 
-You can apply middleware written for standard HTTP handlers to an [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) or an [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler), because they both implement the [http.Handler](https://pkg.go.dev/net/http#Handler) interface. See this [example log middleware](#example-log-middleware). See the [standard middleware example](#example-standard-middleware).
+You can apply middleware written for standard HTTP handlers to an [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) or an [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler), because they both implement the [http.Handler](https://pkg.go.dev/net/http#Handler) interface. See the [standard middleware example](#example-standard-middleware).
 
-However, the handler returned from a standard middleware wrapper will be an [http.Handler](https://pkg.go.dev/net/http#Handler), and will therefore not be able to return an error or accept additional parameters. Instead, use [ApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware) and [XApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware), which return an [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) or an [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) respectively. You can see this in the [httprouter example](#example-httprouter) of using this package pattern with a [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
+However, the handler returned from a standard middleware wrapper will be an [http.Handler](https://pkg.go.dev/net/http#Handler), and will therefore not be able to return an error or accept additional parameters. Instead, use [ApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware) and [XApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware), which return an [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) or an [httperror.XHandler](https://pkg.go.dev/github.com/johnwarden/httperror#XHandler) respectively. You can see an example of this in the [httprouter example](#example-httprouter).
 
 
 
@@ -180,7 +180,7 @@ However, the handler returned from a standard middleware wrapper will be an [htt
 
 ## Similar Packages
 
-[github.com/caarlos0/httperr](https://github.com/caarlos0/httperr) uses a very similar approach, for example the definition of: [httperr.HandlerFunc](https://pkg.go.dev/github.com/caarlos0/httperr#HandlerFunc) and [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are identical. I have designed this package to be mostly compatible with this package. 
+[github.com/caarlos0/httperr](https://github.com/caarlos0/httperr) uses a very similar approach, for example the definition of: [httperr.HandlerFunc](https://pkg.go.dev/github.com/caarlos0/httperr#HandlerFunc) and [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror#HandlerFunc) are identical. I have this package to be mostly compatible with this [httperr](https://github.com/caarlos0/httperr). 
 
 ## Examples
 
@@ -188,7 +188,7 @@ The complete examples below demonstrate some of the advantages of this approach.
 
 ## Example: Custom Error Handler
 
-This example extends the basic example from the introduction by adding custom
+This example extends the basic example from the introduction by adding a custom
 error handler.
 
 
@@ -297,10 +297,9 @@ such as the status code for successful requests.
 
 ## Example: Standard Middleware
 
-Because [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) implements the standard [http.Handler](https://pkg.go.dev/net/http#Handler) interface, you can apply any of the many middleware created by the Go community for standard http Handlers.
+Because [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler) implements the standard [http.Handler](https://pkg.go.dev/net/http#Handler) interface, you can apply any of the many middleware created by the Go community for standard http Handlers, as illustrated in the example below.
 
-However, the resulting handlers after wrapping  will be [http.Handler](https://pkg.go.dev/net/http#Handler)s, and will therefore not be able to return an error or accept additional parameters. The [httprouter example](#example-httprouter) shows hows to use [ApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware) to solve this problem.
-
+Note however, the resulting handlers after wrapping  will be [http.Handler](https://pkg.go.dev/net/http#Handler)s, and will therefore not be able to return an error or accept additional parameters. The [httprouter example](#example-httprouter) shows hows to use [ApplyStandardMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror#ApplyStandardMiddleware) to apply standard middleware to [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror#Handler)s without changing their signature.
 
 	package httperror_test
 
