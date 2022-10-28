@@ -8,63 +8,77 @@ import (
 type contextKey string
 
 var (
-	errPtrKey = contextKey("errPtr")
-	paramsKey = contextKey("params")
+	key = contextKey("key")
 )
 
 // StandardMiddleware is a standard http.Handler wrapper.
 type StandardMiddleware = func(http.Handler) http.Handler
 
-// XApplyStandardMiddleware applies middleware written for a standard [http.Handler] to an [httperror.XHandler].
-// It works by passing parameters and returning errors through the context.
-func XApplyStandardMiddleware[P any](h XHandler[P], m StandardMiddleware) XHandlerFunc[P] {
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		errPtr := ctx.Value(errPtrKey).(*error)
-		p := ctx.Value(paramsKey).(P)
-
-		err := h.Serve(w, r, p)
-
-		*errPtr = err
-	})
-
-	handler = m(handler)
-
-	return func(w http.ResponseWriter, r *http.Request, p P) error {
-		var err error
-		c := r.Context()
-		c = context.WithValue(c, errPtrKey, &err)
-		c = context.WithValue(c, paramsKey, p)
-
-		handler.ServeHTTP(w, r.WithContext(c))
-
-		return err
-	}
+type standardMiddleware[P any] struct {
+	params P
+	err    error
 }
 
-// ApplyStandardMiddleware applies middleware written for a standard [http.Handler] to an [httperror.XHandler].
-// It works by passing parameters and returning errors through the context.
-func ApplyStandardMiddleware(h Handler, m StandardMiddleware) HandlerFunc {
-
+// XApplyStandardMiddleware applies middleware written for a standard
+// [http.Handler] to an [httperror.XHandler], returning an
+// [httperror.XHandler]. It is possible to apply standard middleware to
+// [httperror.XHandler] without using this function,because
+// [httperror.XHandler] implements the standard [http.Handler] interface.
+// However, the result would be an [http.Handler], not an
+// [httperror.XHandler], and so parameters could not passed to it and it
+// could not return an error. This function solves that problem by passing
+// errors and parameters through the context.
+func XApplyStandardMiddleware[P any](h XHandler[P], ms ...StandardMiddleware) XHandlerFunc[P] {
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		errPtr := ctx.Value(errPtrKey).(*error)
+		sm := ctx.Value(key).(*standardMiddleware[P])
 
-		err := h.Serve(w, r)
-
-		*errPtr = err
+		sm.err = h.Serve(w, r, sm.params)
 	})
 
-	handler = m(handler)
+	for _, m := range ms {
+		handler = m(handler)
+	}
 
-	return func(w http.ResponseWriter, r *http.Request) error {
-		var err error
+	return func(w http.ResponseWriter, r *http.Request, p P) error {
+		sm := &standardMiddleware[P]{p, nil}
 		c := r.Context()
-		c = context.WithValue(c, errPtrKey, &err)
-		c = context.WithValue(c, paramsKey, "no params")
+		c = context.WithValue(c, key, sm)
 
 		handler.ServeHTTP(w, r.WithContext(c))
 
-		return err
+		return sm.err
+	}
+}
+// ApplyStandardMiddleware applies middleware written for a standard
+// [http.Handler] to an [httperror.Handler], returning an
+// [httperror.Handler]. It is possible to apply standard middleware to
+// [httperror.Handler] without using this function,because
+// [httperror.Handler] implements the standard [http.Handler] interface.
+// However, the result would be an [http.Handler], not an
+// [httperror.Handler], and so parameters could not passed to it and it
+// could not return an error. This function solves that problem by passing
+// errors and parameters through the context.
+func ApplyStandardMiddleware(h Handler, ms ...StandardMiddleware) HandlerFunc {
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		sm := ctx.Value(key).(*standardMiddleware[any])
+
+		sm.err = h.Serve(w, r)
+	})
+
+	for _, m := range ms {
+		handler = m(handler)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		sm := &standardMiddleware[any]{}
+		c := r.Context()
+		c = context.WithValue(c, key, sm)
+
+		handler.ServeHTTP(w, r.WithContext(c))
+
+		return sm.err
 	}
 }
