@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnwarden/httperror"
+	"github.com/johnwarden/httperror/v2"
 
 	"github.com/stretchr/testify/assert"
 )

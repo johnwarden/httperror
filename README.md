@@ -200,7 +200,7 @@ error handler.
 		"fmt"
 		"net/http"
 
-		"github.com/johnwarden/httperror"
+		"github.com/johnwarden/httperror/v2"
 	)
 
 	func Example_customErrorHandler() {
@@ -260,7 +260,7 @@ such as the status code for successful requests.
 		"fmt"
 		"net/http"
 
-		"github.com/johnwarden/httperror"
+		"github.com/johnwarden/httperror/v2"
 	)
 
 
@@ -308,7 +308,7 @@ Note however, the resulting handlers after wrapping  will be [http.Handler](http
 		"net/http"
 		"os"
 
-		"github.com/johnwarden/httperror"
+		"github.com/johnwarden/httperror/v2"
 		gorilla "github.com/gorilla/handlers"
 	)
 
