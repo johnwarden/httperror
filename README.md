@@ -1,13 +1,8 @@
-Package httperror is for writing HTTP handlers that return errors instead of handling them directly. This package defines:
-
-- errors with embedded HTTP status codes
-- handler types that return errors
-- default sensible error and panic handling functions
-- utilities for applying middleware
+Package httperror is for writing HTTP handlers that return errors instead of handling them directly. 
 
 This readme introduces this package an provides example usage. See the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror) for more details.
 
-## Basic Example
+## Overview
 
 	func helloHandler(w http.ResponseWriter, r *http.Request) error {
 
@@ -43,6 +38,13 @@ This is because `helloHandler` is converted into a [httperror.HandlerFunc](https
 Bad Raquest error returned by `helloHandler` using a default error
 handler, which serves an appropriate error page given the content type and
 the status code embedded in the error.
+
+## Contents of This Package
+
+- errors with embedded HTTP status codes
+- handler types that return errors
+- default sensible error and panic handling functions
+- utilities for applying middleware
 
 ## Advantages to Returning Errors over Handling Them Directly
 
@@ -338,7 +340,7 @@ with middleware written for a standard [http.Handler](https://pkg.go.dev/net/htt
 		"fmt"
 		"net/http"
 
-		"github.com/johnwarden/httperror"
+		"github.com/johnwarden/httperror/v2"
 		"github.com/julienschmidt/httprouter"
 		"github.com/NYTimes/gziphandler"
 	)
