@@ -1,6 +1,6 @@
 Package httperror is for writing HTTP handlers that return errors instead of handling them directly. 
 
-- installation: go get github.com/johnwarden/httperror/v2
+- installation: `go get github.com/johnwarden/httperror/v2`
 - [godoc](https://pkg.go.dev/github.com/johnwarden/httperror/v2)
 
 ## Overview
@@ -34,18 +34,11 @@ return an error.  Although there is no explicit error handling code in this
 example, if you run it and fetch http://localhost:8080/hello without a
 `name` URL parameter, an appropriate plain-text 400 Bad Request page will be served.
 
-This is because `helloHandler` is converted into a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror/v2#HandlerFunc), which has a
-`ServeHTTP` method and thus implements the standard library's [http.Handler](https://pkg.go.dev/net/http#Handler) interface. `ServeHTTP` handles the 400
-Bad Raquest error returned by `helloHandler` using a default error
-handler, which serves an appropriate error page given the content type and
-the status code embedded in the error.
+This is because `helloHandler` is converted into a [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror/v2#HandlerFunc), which implements the standard [http.Handler](https://pkg.go.dev/net/http#Handler) interface, but the 400
+Bad Raquest error returned by `helloHandler` will be handled by a default error
+handler that serves an appropriate error page.
 
-## Contents of This Package
 
-- errors with embedded HTTP status codes
-- handler types that return errors
-- default sensible error and panic handling functions
-- utilities for applying middleware
 
 ## Advantages to Returning Errors over Handling Them Directly
 
@@ -53,7 +46,7 @@ the status code embedded in the error.
 - reduce risk of "naked returns" as described by Preslav Rachev's in [I Don't Like Go's Default HTTP Handlers](https://preslav.me/2022/08/09/i-dont-like-golang-default-http-handlers/)
 - middleware can inspect errors, extract status codes, add context, and appropriately log and handle errors
 
-This package is built based on the philosophy that HTTP frameworks are not needed in Go: the [net/http](https://pkg.go.dev/net/http) package, and the various router, middleware, and templating libraries that that are compatible with it, are sufficient. However, the lack of an error return value in the signature of standard http handler functions is perhaps a small design flaw in the http package. This package addresses this without tying you to a framework: [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror/v2#Handler) **is** an [http.Handler](https://pkg.go.dev/net/http#Handler). You can [apply standard http Handler](/#applying-standard-middleware) middleware to it. And your handler functions look exactly as they would look if [net/http](https://pkg.go.dev/net/http) had been designed differently.
+This package is built based on the philosophy that HTTP frameworks are not needed in Go: the [net/http](https://pkg.go.dev/net/http) package, and the various router, middleware, and templating libraries that are compatible with it, are sufficient. However, the lack of an error return value in the signature of standard http handler functions is perhaps a small design flaw in the http package. This package addresses this without tying you to a framework: [httperror.Handler](https://pkg.go.dev/github.com/johnwarden/httperror/v2#Handler) **is** an [http.Handler](https://pkg.go.dev/net/http#Handler). You can [apply standard http Handler](/#applying-standard-middleware) middleware to it. And your handler functions look exactly as they would look if [net/http](https://pkg.go.dev/net/http) had been designed differently.
 
 ## Custom Error Handlers
 
@@ -92,8 +85,9 @@ Here is an example of custom middleware that [logs errors](#example-log-middlewa
 and [XPanicMiddleware](https://pkg.go.dev/github.com/johnwarden/httperror/v2#XPanicMiddleware)
 are simple middleware functions that convert panics to errors. This ensures users are
 served an appropriate 500 error response on panic instead of an empty response. And it allows
-middleware to appropriately inspects, count, and log panics as they do other errors. An optional panicHandler
-can be used to trigger a clean shutdown on panic.
+middleware to appropriately inspects, count, and log panics as they do other errors. These functions
+accept a panic handler as an optional second argument. This can be used for example to trigger a shutdown on panic.
+
 
 ## Extracting, Embedding, and Comparing HTTP Status Codes
 
@@ -178,10 +172,6 @@ However, the handler returned from a standard middleware wrapper will be an [htt
 ## Similar Packages
 
 [github.com/caarlos0/httperr](https://github.com/caarlos0/httperr) uses a very similar approach, for example the definition of: [httperr.HandlerFunc](https://pkg.go.dev/github.com/caarlos0/httperr#HandlerFunc) and [httperror.HandlerFunc](https://pkg.go.dev/github.com/johnwarden/httperror/v2#HandlerFunc) are identical. I have this package to be mostly compatible with this [httperr](https://github.com/caarlos0/httperr). 
-
-## Examples
-
-The complete examples below demonstrate some of the advantages of this approach.
 
 ## Example: Custom Error Handler
 
@@ -343,8 +333,9 @@ with middleware written for a standard [http.Handler](https://pkg.go.dev/net/htt
 	func Example_httprouter() {
 		router := httprouter.New()
 
-		// first, convert our handler into an httprouter.Handle
-		h := routerHandler(helloRouterHandler)
+		// first, apply middleware that parses request params and
+		// converts our handler into an httprouter.Handle
+		h := requestParserMiddleware(helloRouterHandler)
 
 		// next, apply some middleware. We still have an httprouter.Handle
 		h := httperror.ApplyStandardMiddleware[HelloParams](h, gziphandler.GzipHandler)
@@ -373,12 +364,12 @@ with middleware written for a standard [http.Handler](https://pkg.go.dev/net/htt
 		return nil
 	}
 
-	// routerHandler wraps a handler function of type httperror.XHandler[HelloParams]
+	// requestParserMiddleware wraps a handler function of type httperror.XHandler[HelloParams]
 	// and converts it into a httprouter.Handle. The resulting function
 	// converts its argument of type httprouter.Params into a value of type HelloParams,
 	// and passes it to the inner handler function. 
 
-	func routerHandler(h httperror.XHandler[HelloParams]) httprouter.Handle {
+	func requestParserMiddleware(h httperror.XHandler[HelloParams]) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 			var params HelloParams
