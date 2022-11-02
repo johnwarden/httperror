@@ -1,6 +1,7 @@
 Package httperror is for writing HTTP handlers that return errors instead of handling them directly. 
 
-This readme introduces this package an provides example usage. See the [godoc](https://pkg.go.dev/github.com/johnwarden/httperror/v2) for more details.
+- installation: go get github.com/johnwarden/httperror/v2
+- [godoc](https://pkg.go.dev/github.com/johnwarden/httperror/v2)
 
 ## Overview
 
