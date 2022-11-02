@@ -50,10 +50,15 @@ func TestCustomErrorHandler(t *testing.T) {
 
 func TestPanic(t *testing.T) {
 	h := getMeOuttaHere
-	h = httperror.PanicMiddleware(h)
+	errChan := make(chan error)
+	h = httperror.PanicMiddleware(h, func(e error) {errChan <- e})
 	s, m := testRequest(h, "/")
 	assert.Equal(t, 500, s, "got 500 status code")
 	assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
+
+	e := <-errChan
+
+	assert.Equal(t, "Get me outta here!", e.Error())
 }
 
 func TestApplyStandardMiddleware(t *testing.T) {
