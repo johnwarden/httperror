@@ -9,7 +9,7 @@ import (
 // recovers from panics and returns them as errors. The second argument is an optional 
 // function that is called if there is a panic. This function can be used, for example, to
 // cleanly shutdown the server. 
-func PanicMiddleware(h Handler, s func()) HandlerFunc {
+func PanicMiddleware(h Handler, s func(error)) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) (err error) {
 
 		defer func() {
@@ -23,7 +23,7 @@ func PanicMiddleware(h Handler, s func()) HandlerFunc {
 					// to shutdown the server, we'll get a deadlock with the server shutdown function
 					// waiting for this request handler to finish, and this request waiting for the
 					// server shutdown function.
-					go s()
+					go s(err)
 				}
 			}
 		}()
@@ -37,7 +37,7 @@ func PanicMiddleware(h Handler, s func()) HandlerFunc {
 // recovers from panics and returns them as errors. The second argument is an optional 
 // function that is called if there is a panic. This function can be used, for example, to
 // cleanly shutdown the server. 
-func XPanicMiddleware[P any](h XHandler[P], s func()) XHandlerFunc[P] {
+func XPanicMiddleware[P any](h XHandler[P], s func(error)) XHandlerFunc[P] {
 	return func(w http.ResponseWriter, r *http.Request, p P) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -47,7 +47,7 @@ func XPanicMiddleware[P any](h XHandler[P], s func()) XHandlerFunc[P] {
 				}
 				if s != nil {
 					// the shutdown function must be called in a goroutine. See comment in PanicMiddleware above.
-					go s()
+					go s(err)
 				}
 			}
 		}()
