@@ -1,5 +1,7 @@
 /*
-Package httperror is for writing HTTP handlers that return errors instead of handling them directly. See the documentation at https://github.com/johnwarden/httperror/v2
+Package httperror is for writing HTTP handlers that return errors instead of handling them directly. 
+
+Please use the v1 branch of this package at [github.com/johnwarden/httperror]. The v2 branch has been discontinued.
 */
 package httperror
 
