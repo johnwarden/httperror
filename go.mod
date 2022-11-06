@@ -1,4 +1,4 @@
-module github.com/johnwarden/httperror/v2
+module github.com/johnwarden/httperror
 
 go 1.19
 

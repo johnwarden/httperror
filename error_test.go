@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/johnwarden/httperror/v2"
+	"github.com/johnwarden/httperror"
 	"github.com/stretchr/testify/assert"
 )
 

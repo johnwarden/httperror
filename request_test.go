@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/johnwarden/httperror/v2"
+	"github.com/johnwarden/httperror"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,7 +24,7 @@ func testRequest(h http.Handler, path string) (int, string) {
 	resp := rr.Result()
 	defer resp.Body.Close()
 	// io.Copy(os.Stdout, res.Body)
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 
 	return resp.StatusCode, string(body)
 }
@@ -49,16 +49,41 @@ func TestCustomErrorHandler(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	h := getMeOuttaHere
-	errChan := make(chan error)
-	h = httperror.PanicMiddleware(h, func(e error) {errChan <- e})
-	s, m := testRequest(h, "/")
-	assert.Equal(t, 500, s, "got 500 status code")
-	assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
+	{
+		h := getMeOuttaHere
+		h = httperror.PanicMiddleware(h)
 
-	e := <-errChan
+		var e error
+		errorHandler := func(w http.ResponseWriter, err error) {
+			e = err
+			httperror.DefaultErrorHandler(w, err)
+		}
 
-	assert.Equal(t, "Get me outta here!", e.Error())
+		s, m := testRequest(httperror.WrapHandlerFunc(h, errorHandler), "/")
+		assert.Equal(t, 500, s, "got 500 status code")
+		assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
+		assert.True(t, errors.Is(e, httperror.Panic))
+		assert.Equal(t, "panic: Get me outta here!", e.Error())
+	}
+
+	{
+		h := fail
+		h = httperror.PanicMiddleware(h)
+
+		var e error
+		errorHandler := func(w http.ResponseWriter, err error) {
+			e = err
+			httperror.DefaultErrorHandler(w, err)
+		}
+
+		s, m := testRequest(httperror.WrapHandlerFunc(h, errorHandler), "/")
+		assert.Equal(t, 500, s, "got 500 status code")
+		assert.Equal(t, "500 Internal Server Error\n", m, "got 500 text/plain response")
+		assert.True(t, errors.Is(e, httperror.Panic))
+		assert.True(t, errors.Is(e, sentinalError))
+		assert.Equal(t, "panic: SOME_ERROR", e.Error())
+
+	}
 }
 
 func TestApplyStandardMiddleware(t *testing.T) {
@@ -86,13 +111,18 @@ func TestApplyStandardMiddleware(t *testing.T) {
 		assert.Equal(t, 200, s)
 		assert.Equal(t, "Hello, Bill\n", m, "got middleware output")
 	}
-
 }
+
+var sentinalError = fmt.Errorf("SOME_ERROR")
 
 var getMeOuttaHere = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/plain")
 	panic("Get me outta here!")
-	return nil
+})
+
+var fail = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "text/plain")
+	panic(sentinalError)
 })
 
 var okHandler = httperror.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {

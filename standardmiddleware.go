@@ -7,9 +7,7 @@ import (
 
 type contextKey string
 
-var (
-	key = contextKey("key")
-)
+var key = contextKey("key")
 
 // StandardMiddleware is a standard http.Handler wrapper.
 type StandardMiddleware = func(http.Handler) http.Handler
@@ -50,6 +48,7 @@ func XApplyStandardMiddleware[P any](h XHandler[P], ms ...StandardMiddleware) XH
 		return sm.err
 	}
 }
+
 // ApplyStandardMiddleware applies middleware written for a standard
 // [http.Handler] to an [httperror.Handler], returning an
 // [httperror.Handler]. It is possible to apply standard middleware to
@@ -60,7 +59,6 @@ func XApplyStandardMiddleware[P any](h XHandler[P], ms ...StandardMiddleware) XH
 // could not return an error. This function solves that problem by passing
 // errors and parameters through the context.
 func ApplyStandardMiddleware(h Handler, ms ...StandardMiddleware) HandlerFunc {
-
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		sm := ctx.Value(key).(*standardMiddleware[any])
